@@ -5,40 +5,56 @@ import ShopPage from './pages/shop/shop.component';
 import './App.css';
 import Header from './components/header/header.component';
 import SignInAndSignUp from './pages/sign-in-sign-up/sign-in-sign-up.component';
-import {auth} from './firebase/firebase.utils'
-class App extends Component{
-  constructor(){
+import {auth, createUserProfileDocument} from './firebase/firebase.utils'
+
+class App extends Component {
+  constructor() {
     super();
 
     this.state = {
-      currentUser : null
-    }
-  }
-  unSubscribeFromAuth = null
-  componentDidMount(){
-    this.unSubscribeFromAuth = auth.onAuthStateChanged(user => {
-      this.setState({ currentUser : user});
-      console.log(user);
-    })
+      currentUser: null
+    };
   }
 
-  componentWillUnmount(){
-    this.unSubscribeFromAuth();
+  unsubscribeFromAuth = null;
+
+  componentDidMount() {
+    this.unsubscribeFromAuth = auth.onAuthStateChanged(async userAuth => {
+      if (userAuth) {
+        const userRef = await createUserProfileDocument(userAuth);
+
+        userRef.onSnapshot(snapShot => {
+          this.setState({
+            currentUser: {
+              id: snapShot.id,
+              ...snapShot.data()
+            }
+          });
+
+          console.log(this.state);
+        });
+      }
+
+      this.setState({ currentUser: userAuth });
+    });
   }
-  render(){
+
+  componentWillUnmount() {
+    this.unsubscribeFromAuth();
+  }
+
+  render() {
     return (
       <div>
-        <Header currentUser = {this.state.currentUser}/>
+        <Header currentUser={this.state.currentUser} />
         <Switch>
-          <Route exact={true} path='/' component = {HomePage} />
-          <Route path='/shop' component = {ShopPage} />
-          <Route path='/signin' component = {SignInAndSignUp} />
+          <Route exact path='/' component={HomePage} />
+          <Route path='/shop' component={ShopPage} />
+          <Route path='/signin' component={SignInAndSignUp} />
         </Switch>
-         
       </div>
     );
   }
-
 }
 
 export default App;
